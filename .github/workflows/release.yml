@@ -34,11 +34,13 @@ jobs:
           build-args: |
             VERSION=${{ github.ref_name }}
 
+      - uses: actions/checkout@v4
+        with:
+          ref: main
       - name: Get chart version
         run: |
           CHART_VERSION=$(cat chart/Chart.yaml | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+$" | awk -F. -v OFS=. '{$NF += 1 ; print}')
           echo "CHART_VERSION=${CHART_VERSION}" >> $GITHUB_ENV
-
       - name: Update chart AppVersion
         uses: mikefarah/yq@master
         with:
@@ -50,3 +52,14 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(chart): update version to ${{ github.ref_name }}"
+      - name: Push chart
+        uses: appany/helm-oci-chart-releaser@v0.4.2
+        with:
+          name: crunchy-users-helm
+          repository: henrywhitaker3
+          tag: "v${{ env.CHART_VERSION }}"
+          path: chart
+          registry: ghcr.io
+          registry_username: ${{ github.actor }}
+          registry_password: ${{ secrets.GITHUB_TOKEN }}
+          update_dependencies: 'true'
