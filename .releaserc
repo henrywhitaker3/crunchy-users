@@ -1,0 +1,12 @@
+{
+  "branches": ["main"],
+  "repositoryUrl": "https://github.com/henrywhitaker3/crunchy-users",
+  "plugins": [
+    [
+      "@semantic-release/github",
+      {
+          "successComment": false
+      }
+    ]
+  ]
+}
