@@ -4,3 +4,5 @@ description: A Helm chart for crunchy-users
 type: application
 version: 1.0.0
 appVersion: "v0.1.0"
+appVerison: v1.0.3
+verison: 1.0.1
