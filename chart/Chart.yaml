@@ -2,5 +2,5 @@ apiVersion: v2
 name: crunchy-users-helm
 description: A Helm chart for crunchy-users
 type: application
-version: 1.0.2
-appVersion: v1.0.5
+version: 1.0.3
+appVersion: v1.0.6
