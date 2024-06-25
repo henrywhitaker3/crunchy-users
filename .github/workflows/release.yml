@@ -34,5 +34,7 @@ jobs:
           build-args: |
             VERSION=${{ github.ref_name }}
 
-      - name: Update chart appversion
-        run: echo ${{ github.ref_name }}
+      - name: Update chart AppVersion
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq -i '.appVerison = "${{ github.ref_name }}"' 'chart/Chart.yaml'
