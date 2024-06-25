@@ -34,7 +34,19 @@ jobs:
           build-args: |
             VERSION=${{ github.ref_name }}
 
+      - name: Get chart version
+        run: |
+          CHART_VERSION=$(cat chart/Chart.yaml | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+$") | awk -F. -v OFS=. '{$NF += 1 ; print}')
+          echo "CHART_VERSION=${CHART_VERSION}" >> $GITHUB_ENV
+
       - name: Update chart AppVersion
         uses: mikefarah/yq@master
         with:
           cmd: yq -i '.appVerison = "${{ github.ref_name }}"' 'chart/Chart.yaml'
+      - name: Update chart Version
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq -i '.verison = "${{ env.CHART_VERSION }}"' 'chart/Chart.yaml'
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(chart): update version to ${{ github.ref_name }}"
