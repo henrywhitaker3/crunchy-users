@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SEMVER_GH_TOKEN }}
+
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push operator image
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: |
+            ghcr.io/henrywhitaker3/crunchy-users:latest
+            ghcr.io/henrywhitaker3/crunchy-users:${{ github.ref_name }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+
+      - name: Update chart appversion
+        run: echo ${{ github.ref_name }}
