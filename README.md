@@ -25,3 +25,7 @@ spec:
 ```
 
 Both databases `bongo1` and `bongo2` will have their owner set to the user `bongo`.
+
+## Installation
+
+The helm chart is hosted at `oci://ghcr.io/henrywhitaker3/crunchy-users-helm`

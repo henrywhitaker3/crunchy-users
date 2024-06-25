@@ -44,11 +44,11 @@ jobs:
       - name: Update chart AppVersion
         uses: mikefarah/yq@master
         with:
-          cmd: yq -i '.appVerison = "${{ github.ref_name }}"' 'chart/Chart.yaml'
+          cmd: yq -i '.appVersion = "${{ github.ref_name }}"' 'chart/Chart.yaml'
       - name: Update chart Version
         uses: mikefarah/yq@master
         with:
-          cmd: yq -i '.verison = "${{ env.CHART_VERSION }}"' 'chart/Chart.yaml'
+          cmd: yq -i '.version = "${{ env.CHART_VERSION }}"' 'chart/Chart.yaml'
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(chart): update version to ${{ github.ref_name }}"
@@ -57,7 +57,7 @@ jobs:
         with:
           name: crunchy-users-helm
           repository: henrywhitaker3
-          tag: "v${{ env.CHART_VERSION }}"
+          tag: "${{ env.CHART_VERSION }}"
           path: chart
           registry: ghcr.io
           registry_username: ${{ github.actor }}
