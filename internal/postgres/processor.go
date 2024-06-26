@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/henrywhitaker3/flow"
 )
@@ -14,23 +15,23 @@ type Processor interface {
 	UserIsOwner(context.Context, *sql.DB, string, string, string) (bool, error)
 	DatabaseExists(context.Context, *sql.DB, string, string) (bool, error)
 	MakeUserOwner(context.Context, *sql.DB, string, string) error
+	ExtensionExists(context.Context, *sql.DB, string) (bool, error)
+	CreateExtension(context.Context, *sql.DB, string, bool) error
 }
 
 var (
-	p *processor
-)
-
-func NewProcessor() Processor {
-	if p == nil {
-		fmt.Println("its nil")
-		p = &processor{
-			userExists:     flow.NewStore[bool](),
-			databaseExists: flow.NewStore[bool](),
-			databaseOwned:  flow.NewStore[bool](),
+	p            *processor
+	NewProcessor = func() Processor {
+		if p == nil {
+			p = &processor{
+				userExists:     flow.NewStore[bool](),
+				databaseExists: flow.NewStore[bool](),
+				databaseOwned:  flow.NewStore[bool](),
+			}
 		}
+		return p
 	}
-	return p
-}
+)
 
 type processor struct {
 	userExists     *flow.Store[bool]
@@ -98,4 +99,35 @@ func (p *processor) DatabaseExists(ctx context.Context, db *sql.DB, cluster stri
 	}
 	p.databaseExists.Put(key, true)
 	return true, nil
+}
+
+func (p *processor) ExtensionExists(ctx context.Context, db *sql.DB, name string) (bool, error) {
+	rows, err := db.QueryContext(ctx, "SELECT extname FROM pg_extension;")
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	defer rows.Close()
+
+	enabled := []string{}
+	for rows.Next() {
+		var ext string
+		if err := rows.Scan(&ext); err != nil {
+			return false, err
+		}
+		enabled = append(enabled, ext)
+	}
+
+	return slices.Contains(enabled, name), nil
+}
+
+func (p *processor) CreateExtension(ctx context.Context, db *sql.DB, name string, cascade bool) error {
+	query := fmt.Sprintf("CREATE EXTENSION %s", name)
+	if cascade {
+		query = fmt.Sprintf("%s CASCADE", query)
+	}
+	_, err := db.ExecContext(ctx, query)
+	return err
 }

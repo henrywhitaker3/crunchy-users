@@ -2,8 +2,10 @@ package k8s
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	crunchy "github.com/crunchydata/postgres-operator/pkg/apis/postgres-operator.crunchydata.com/v1beta1"
@@ -21,12 +23,13 @@ import (
 )
 
 const (
-	WatchLabel          = "crunchy-users.henrywhitaker3.github.com/watch"
-	SuperuserAnnotation = "crunchy-users.henrywhitaker3.github.com/superuser"
+	WatchLabel           = "crunchy-users.henrywhitaker3.github.com/watch"
+	SuperuserAnnotation  = "crunchy-users.henrywhitaker3.github.com/superuser"
+	ExtensionsAnnotation = "crunchy-users.henrywhitaker3.github.com/extensions"
 )
 
 var (
-	superusers = flow.NewStore[string]()
+	superusers = flow.NewStore[ClusterSuperuser]()
 )
 
 type ClusterUser struct {
@@ -34,15 +37,45 @@ type ClusterUser struct {
 	Databases []string
 }
 
+type DatabaseExtension struct {
+	Database  string `json:"database"`
+	Extension string `json:"extension"`
+	Cascade   bool   `json:"cascade"`
+}
+
+type ClusterSuperuser struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	Database string
+}
+
+func (c ClusterSuperuser) Url() string {
+	return fmt.Sprintf(
+		"postgresql://%s:%s@%s:%d/%s",
+		c.User,
+		c.Password,
+		c.Host,
+		c.Port,
+		c.Database,
+	)
+}
+
+func (c ClusterSuperuser) Key() string {
+	return fmt.Sprintf("%s:%s:%s", c.Host, c.User, c.Database)
+}
+
 type ClusterResult struct {
-	Name      string
-	Namespace string
-	Superuser string
-	Users     []ClusterUser
+	Name       string
+	Namespace  string
+	Superuser  ClusterSuperuser
+	Users      []ClusterUser
+	Extensions map[string][]DatabaseExtension
 }
 
 func (c ClusterResult) Key() string {
-	return fmt.Sprintf("%s:%s")
+	return fmt.Sprintf("%s:%s", c.Name, c.Namespace)
 }
 
 func WatchClusters(ctx context.Context, client *dynamic.DynamicClient) (<-chan ClusterResult, error) {
@@ -98,6 +131,18 @@ func processObject(ctx context.Context, logger *zap.SugaredLogger, u *unstructur
 		return nil
 	}
 
+	ext := []DatabaseExtension{}
+	extRaw, ok := cluster.Annotations[ExtensionsAnnotation]
+	if ok {
+		if err := json.Unmarshal([]byte(extRaw), &ext); err != nil {
+			l.Errorw("failed to unmarshall extensions", "error", err)
+		}
+	}
+	extensions := map[string][]DatabaseExtension{}
+	for _, e := range ext {
+		extensions[e.Database] = append(extensions[e.Database], e)
+	}
+
 	users := []ClusterUser{}
 	for _, user := range cluster.Spec.Users {
 		dbs := []string{}
@@ -110,8 +155,8 @@ func processObject(ctx context.Context, logger *zap.SugaredLogger, u *unstructur
 		})
 	}
 
-	if len(users) < 1 {
-		l.Infow("skipping cluster as there are no users")
+	if len(users) < 1 && len(extensions) < 1 {
+		l.Infow("skipping cluster as there are no users or extensions")
 		return nil
 	}
 
@@ -122,14 +167,16 @@ func processObject(ctx context.Context, logger *zap.SugaredLogger, u *unstructur
 	}
 
 	return &ClusterResult{
-		Name:      cluster.Name,
-		Namespace: cluster.Namespace,
-		Superuser: super,
-		Users:     users,
+		Name:       cluster.Name,
+		Namespace:  cluster.Namespace,
+		Superuser:  super,
+		Users:      users,
+		Extensions: extensions,
 	}
 }
 
-func getSuperuser(ctx context.Context, client *dynamic.DynamicClient, cluster *crunchy.PostgresCluster, name string) (string, error) {
+func getSuperuser(ctx context.Context, client *dynamic.DynamicClient, cluster *crunchy.PostgresCluster, name string) (ClusterSuperuser, error) {
+	var out ClusterSuperuser
 	if url, ok := superusers.Get(clusterKey(cluster)); ok {
 		return url, nil
 	}
@@ -141,22 +188,47 @@ func getSuperuser(ctx context.Context, client *dynamic.DynamicClient, cluster *c
 		Resource: "secrets",
 	}).Namespace(cluster.Namespace).Get(ctx, secretName, v1.GetOptions{})
 	if err != nil {
-		return "", err
+		return out, err
 	}
 
 	secret := &corev1.Secret{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(usec.UnstructuredContent(), secret); err != nil {
-		return "", err
+		return out, err
 	}
 
-	url, ok := secret.Data["uri"]
+	host, ok := secret.Data["host"]
 	if !ok {
-		return "", errors.New("superuser secret missing field uri")
+		return out, errors.New("superuser secret missing field host")
 	}
+	out.Host = string(host)
+	portB, ok := secret.Data["port"]
+	if !ok {
+		return out, errors.New("superuser secret missing field port")
+	}
+	port, err := strconv.Atoi(string(portB))
+	if err != nil {
+		return out, fmt.Errorf("could not parse port: %w", err)
+	}
+	out.Port = port
+	user, ok := secret.Data["user"]
+	if !ok {
+		return out, errors.New("superuser secret missing field user")
+	}
+	out.User = string(user)
+	dbname, ok := secret.Data["dbname"]
+	if !ok {
+		return out, errors.New("superuser secret missing field dbname")
+	}
+	out.Database = string(dbname)
+	password, ok := secret.Data["password"]
+	if !ok {
+		return out, errors.New("superuser secret missing field password")
+	}
+	out.Password = string(password)
 
-	superusers.Put(clusterKey(cluster), string(url))
+	superusers.Put(clusterKey(cluster), out)
 
-	return string(url), nil
+	return out, nil
 }
 
 func clusterKey(cluster *crunchy.PostgresCluster) string {

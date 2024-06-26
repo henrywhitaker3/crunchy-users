@@ -19,7 +19,7 @@ func HandleCluster(ctx context.Context, cluster k8s.ClusterResult) error {
 	logger := logger.Logger(ctx).With("cluster", cluster.Name, "namespace", cluster.Namespace)
 	logger.Info("processing cluster")
 
-	db, err := getDb(ctx, cluster)
+	db, err := getDb(ctx, cluster.Superuser)
 	if err != nil {
 		logger.Errorw("could not open db connection", "error", err)
 		return err
@@ -63,23 +63,45 @@ func HandleCluster(ctx context.Context, cluster k8s.ClusterResult) error {
 			} else {
 				ld.Debug("user is already owner")
 			}
+
+			for _, ext := range cluster.Extensions[database] {
+				le := ld.With("extension", ext.Extension)
+				le.Debugw("processing extension")
+				lu := cluster.Superuser
+				lu.Database = database
+				ddb, err := getDb(ctx, lu)
+				if err != nil {
+					le.Errorw("could not connect to database", "error", err)
+				}
+				exists, err := processor.ExtensionExists(ctx, ddb, ext.Extension)
+				if err != nil {
+					le.Errorw("could not detemrine if extension exists", "error", err)
+				}
+				if exists {
+					le.Debug("extension already installed")
+					continue
+				}
+				if err := processor.CreateExtension(ctx, ddb, ext.Extension, ext.Cascade); err != nil {
+					le.Errorw("could not install extension", "error", err)
+				}
+			}
 		}
 	}
 
 	return nil
 }
 
-func getDb(ctx context.Context, cluster k8s.ClusterResult) (*sql.DB, error) {
-	db, ok := dbs.Get(cluster.Key())
+func getDb(ctx context.Context, user k8s.ClusterSuperuser) (*sql.DB, error) {
+	db, ok := dbs.Get(user.Key())
 	if !ok {
-		conn, err := sql.Open("pgx", cluster.Superuser)
+		conn, err := sql.Open("pgx", user.Url())
 		if err != nil {
 			return nil, err
 		}
 		if err := conn.PingContext(ctx); err != nil {
 			return nil, err
 		}
-		dbs.Put(cluster.Key(), conn)
+		dbs.Put(user.Key(), conn)
 		db = conn
 	}
 
