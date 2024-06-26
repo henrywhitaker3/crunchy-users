@@ -43,7 +43,8 @@ metadata:
       [
         {
           "extension": "vector",
-          "database": "bongo"
+          "database": "bongo",
+          "cascade": true
         }
       ]
 ```
