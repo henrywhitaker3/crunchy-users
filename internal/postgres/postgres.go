@@ -17,7 +17,7 @@ var (
 
 func HandleCluster(ctx context.Context, cluster k8s.ClusterResult) error {
 	logger := logger.Logger(ctx).With("cluster", cluster.Name, "namespace", cluster.Namespace)
-	logger.Info("processing cluster")
+	logger.Debug("processing cluster")
 
 	db, err := getDb(ctx, cluster.Superuser)
 	if err != nil {
@@ -26,7 +26,12 @@ func HandleCluster(ctx context.Context, cluster k8s.ClusterResult) error {
 	}
 	processor := NewProcessor()
 
+	users := 0
+	databases := 0
+	extensions := 0
+
 	for _, user := range cluster.Users {
+		users++
 		l := logger.With("cluster", cluster.Name, "namespace", cluster.Namespace, "user", user.Name)
 		l.Debug("processing user")
 		if exists, err := processor.UserExists(ctx, db, user.Name); err != nil {
@@ -40,6 +45,7 @@ func HandleCluster(ctx context.Context, cluster k8s.ClusterResult) error {
 		}
 
 		for _, database := range user.Databases {
+			databases++
 			ld := l.With("database", database)
 			ld.Debug("processing database")
 			if exists, err := processor.DatabaseExists(ctx, db, cluster.Key(), database); err != nil {
@@ -65,6 +71,7 @@ func HandleCluster(ctx context.Context, cluster k8s.ClusterResult) error {
 			}
 
 			for _, ext := range cluster.Extensions[database] {
+				extensions++
 				le := ld.With("extension", ext.Extension)
 				le.Debugw("processing extension")
 				lu := cluster.Superuser
@@ -87,6 +94,7 @@ func HandleCluster(ctx context.Context, cluster k8s.ClusterResult) error {
 			}
 		}
 	}
+	logger.Infow("processed cluster", "users", users, "databases", databases, "extensions", extensions)
 
 	return nil
 }
