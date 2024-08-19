@@ -82,7 +82,7 @@ func HandleCluster(ctx context.Context, cluster k8s.ClusterResult) error {
 				}
 				exists, err := processor.ExtensionExists(ctx, ddb, ext.Extension)
 				if err != nil {
-					le.Errorw("could not detemrine if extension exists", "error", err)
+					le.Errorw("could not determine if extension exists", "error", err)
 				}
 				if exists {
 					le.Debug("extension already installed")
