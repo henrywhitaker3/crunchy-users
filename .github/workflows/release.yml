@@ -53,7 +53,7 @@ jobs:
         with:
           commit_message: "chore(chart): update version to ${{ github.ref_name }}"
       - name: Push chart
-        uses: appany/helm-oci-chart-releaser@v0.4.2
+        uses: appany/helm-oci-chart-releaser@v0.5.0
         with:
           name: crunchy-users-helm
           repository: henrywhitaker3
