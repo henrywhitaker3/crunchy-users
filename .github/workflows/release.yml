@@ -49,7 +49,7 @@ jobs:
         uses: mikefarah/yq@master
         with:
           cmd: yq -i '.version = "${{ env.CHART_VERSION }}"' 'chart/Chart.yaml'
-      - uses: stefanzweifel/git-auto-commit-action@v5
+      - uses: stefanzweifel/git-auto-commit-action@v6
         with:
           commit_message: "chore(chart): update version to ${{ github.ref_name }}"
       - name: Push chart
