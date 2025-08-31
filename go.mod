@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/crunchydata/postgres-operator v1.3.3-0.20240612223905-de38792569a7
 	github.com/henrywhitaker3/ctxgen v1.0.1
-	github.com/henrywhitaker3/flow v1.11.0
+	github.com/henrywhitaker3/flow v1.11.1
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/joho/godotenv v1.5.1
 	github.com/sethvargo/go-envconfig v1.3.0
