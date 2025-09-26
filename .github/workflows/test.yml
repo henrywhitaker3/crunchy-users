@@ -11,7 +11,7 @@ jobs:
       checks: write
     services:
       postgres:
-        image: postgres:17
+        image: postgres:18
         env:
           PGDATA: /var/lib/postgresql/data/pgdata
           POSTGRES_USER: postgres
