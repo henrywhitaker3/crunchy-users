@@ -9,7 +9,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/joho/godotenv v1.5.1
 	github.com/sethvargo/go-envconfig v1.3.0
-	github.com/spf13/cobra v1.9.1
+	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.0
 	k8s.io/api v0.35.0
