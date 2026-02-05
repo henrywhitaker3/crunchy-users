@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	crunchy "github.com/crunchydata/postgres-operator/pkg/apis/postgres-operator.crunchydata.com/v1beta1"
+	crunchy "github.com/crunchydata/postgres-operator/pkg/apis/postgres-operator.crunchydata.com/v1"
 	"github.com/henrywhitaker3/crunchy-users/internal/logger"
 	"github.com/henrywhitaker3/flow"
 	"go.uber.org/zap"
@@ -78,7 +78,10 @@ func (c ClusterResult) Key() string {
 	return fmt.Sprintf("%s:%s", c.Name, c.Namespace)
 }
 
-func WatchClusters(ctx context.Context, client *dynamic.DynamicClient) (<-chan ClusterResult, error) {
+func WatchClusters(
+	ctx context.Context,
+	client *dynamic.DynamicClient,
+) (<-chan ClusterResult, error) {
 	logger := logger.Logger(ctx)
 
 	out := make(chan ClusterResult, 1)
@@ -112,7 +115,12 @@ func WatchClusters(ctx context.Context, client *dynamic.DynamicClient) (<-chan C
 	return out, nil
 }
 
-func processObject(ctx context.Context, logger *zap.SugaredLogger, u *unstructured.Unstructured, client *dynamic.DynamicClient) *ClusterResult {
+func processObject(
+	ctx context.Context,
+	logger *zap.SugaredLogger,
+	u *unstructured.Unstructured,
+	client *dynamic.DynamicClient,
+) *ClusterResult {
 	cluster := &crunchy.PostgresCluster{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), cluster); err != nil {
 		logger.Errorw("couldn't cast resource to PostgresCluster", "obj", u)
@@ -175,7 +183,12 @@ func processObject(ctx context.Context, logger *zap.SugaredLogger, u *unstructur
 	}
 }
 
-func getSuperuser(ctx context.Context, client *dynamic.DynamicClient, cluster *crunchy.PostgresCluster, name string) (ClusterSuperuser, error) {
+func getSuperuser(
+	ctx context.Context,
+	client *dynamic.DynamicClient,
+	cluster *crunchy.PostgresCluster,
+	name string,
+) (ClusterSuperuser, error) {
 	var out ClusterSuperuser
 	if url, ok := superusers.Get(clusterKey(cluster)); ok {
 		return url, nil
