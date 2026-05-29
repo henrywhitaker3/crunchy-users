@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// Creates a new k8s client, which will first try building
+// NewClient creates a new k8s client, which will first try building
 // from a ServiceAccout if it is inside a cluster, or will
 // fallback to the path of a defined kubeconfig file
 func NewClient(path string) (*dynamic.DynamicClient, error) {
@@ -34,7 +34,7 @@ func envConfig(path string) (*rest.Config, error) {
 		if err != nil {
 			return nil, err
 		}
-		path = strings.Replace(path, "~", home, -1)
+		path = strings.ReplaceAll(path, "~", home)
 	}
 	return clientcmd.BuildConfigFromFlags("", path)
 }

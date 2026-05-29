@@ -1,3 +1,4 @@
+// Package k8s
 package k8s
 
 import (
@@ -93,7 +94,7 @@ func WatchClusters(
 		nil,
 	)
 	informer := fac.ForResource(crunchy.GroupVersion.WithResource("postgresclusters")).Informer()
-	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, _ = informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj any) {
 			u := obj.(*unstructured.Unstructured)
 			cluster := processObject(ctx, logger, u, client)
@@ -101,7 +102,7 @@ func WatchClusters(
 				out <- *cluster
 			}
 		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
+		UpdateFunc: func(oldObj, newObj any) {
 			u := newObj.(*unstructured.Unstructured)
 			cluster := processObject(ctx, logger, u, client)
 			if cluster != nil {
@@ -122,7 +123,10 @@ func processObject(
 	client *dynamic.DynamicClient,
 ) *ClusterResult {
 	cluster := &crunchy.PostgresCluster{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.UnstructuredContent(), cluster); err != nil {
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
+		u.UnstructuredContent(),
+		cluster,
+	); err != nil {
 		logger.Errorw("couldn't cast resource to PostgresCluster", "obj", u)
 		return nil
 	}
@@ -205,7 +209,10 @@ func getSuperuser(
 	}
 
 	secret := &corev1.Secret{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(usec.UnstructuredContent(), secret); err != nil {
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(
+		usec.UnstructuredContent(),
+		secret,
+	); err != nil {
 		return out, err
 	}
 
