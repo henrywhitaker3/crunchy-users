@@ -29,27 +29,49 @@ func (m *mockProcessor) UserExists(ctx context.Context, db *sql.DB, name string)
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *mockProcessor) UserIsOwner(ctx context.Context, db *sql.DB, cluster, user, database string) (bool, error) {
+func (m *mockProcessor) UserIsOwner(
+	ctx context.Context,
+	db *sql.DB,
+	cluster, user, database string,
+) (bool, error) {
 	args := m.Called(ctx, db, cluster, user, database)
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *mockProcessor) DatabaseExists(ctx context.Context, db *sql.DB, cluster string, database string) (bool, error) {
+func (m *mockProcessor) DatabaseExists(
+	ctx context.Context,
+	db *sql.DB,
+	cluster string,
+	database string,
+) (bool, error) {
 	args := m.Called(ctx, db, cluster, database)
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *mockProcessor) MakeUserOwner(ctx context.Context, db *sql.DB, database, user string) error {
+func (m *mockProcessor) MakeUserOwner(
+	ctx context.Context,
+	db *sql.DB,
+	database, user string,
+) error {
 	args := m.Called(ctx, db, database, user)
 	return args.Error(0)
 }
 
-func (m *mockProcessor) ExtensionExists(ctx context.Context, db *sql.DB, name string) (bool, error) {
+func (m *mockProcessor) ExtensionExists(
+	ctx context.Context,
+	db *sql.DB,
+	name string,
+) (bool, error) {
 	args := m.Called(ctx, db, name)
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *mockProcessor) CreateExtension(ctx context.Context, db *sql.DB, name string, cascade bool) error {
+func (m *mockProcessor) CreateExtension(
+	ctx context.Context,
+	db *sql.DB,
+	name string,
+	cascade bool,
+) error {
 	args := m.Called(ctx, db, name, cascade)
 	return args.Error(0)
 }
@@ -140,7 +162,8 @@ func TestItChecksAndStopsDatabaseExistsWhenUserExistsError(t *testing.T) {
 	setMockProcessor(m)
 
 	m.On("UserExists", mock.Anything, mock.Anything, "bongo").Return(true, nil)
-	m.On("DatabaseExists", mock.Anything, mock.Anything, mock.Anything, "bongo").Return(true, errors.New("bongo"))
+	m.On("DatabaseExists", mock.Anything, mock.Anything, mock.Anything, "bongo").
+		Return(true, errors.New("bongo"))
 
 	HandleCluster(context.Background(), k8s.ClusterResult{
 		Name:      "test",
@@ -166,7 +189,8 @@ func TestItChecksAndStopsWhenUserIsOwnerForSingleDatabasesNoErrors(t *testing.T)
 
 	m.On("UserExists", mock.Anything, mock.Anything, "bongo").Return(true, nil)
 	m.On("DatabaseExists", mock.Anything, mock.Anything, mock.Anything, "bongo").Return(true, nil)
-	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bongo").Return(true, nil)
+	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bongo").
+		Return(true, nil)
 
 	HandleCluster(context.Background(), k8s.ClusterResult{
 		Name:      "test",
@@ -191,7 +215,8 @@ func TestItChecksAndStopsWhenUserIsOwnerForSingleDatabasesWithErrors(t *testing.
 
 	m.On("UserExists", mock.Anything, mock.Anything, "bongo").Return(true, nil)
 	m.On("DatabaseExists", mock.Anything, mock.Anything, mock.Anything, "bongo").Return(true, nil)
-	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bongo").Return(false, errors.New("bongo"))
+	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bongo").
+		Return(false, errors.New("bongo"))
 
 	HandleCluster(context.Background(), k8s.ClusterResult{
 		Name:      "test",
@@ -216,7 +241,8 @@ func TestItMakesTheUserTheOwnerNoErrors(t *testing.T) {
 
 	m.On("UserExists", mock.Anything, mock.Anything, "bongo").Return(true, nil)
 	m.On("DatabaseExists", mock.Anything, mock.Anything, mock.Anything, "bongo").Return(true, nil)
-	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bongo").Return(false, nil)
+	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bongo").
+		Return(false, nil)
 	m.On("MakeUserOwner", mock.Anything, mock.Anything, "bongo", "bongo").Return(nil)
 
 	HandleCluster(context.Background(), k8s.ClusterResult{
@@ -242,8 +268,10 @@ func TestItMakesUserOwnerOfMultipleDatabases(t *testing.T) {
 	m.On("UserExists", mock.Anything, mock.Anything, "bongo").Return(true, nil)
 	m.On("DatabaseExists", mock.Anything, mock.Anything, mock.Anything, "bongo").Return(true, nil)
 	m.On("DatabaseExists", mock.Anything, mock.Anything, mock.Anything, "bingo").Return(true, nil)
-	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bongo").Return(false, nil)
-	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bingo").Return(false, nil)
+	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bongo").
+		Return(false, nil)
+	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bingo").
+		Return(false, nil)
 	m.On("MakeUserOwner", mock.Anything, mock.Anything, "bongo", "bongo").Return(nil)
 	m.On("MakeUserOwner", mock.Anything, mock.Anything, "bingo", "bongo").Return(nil)
 
@@ -272,7 +300,8 @@ func TestItDoesntCreateExtensionsWhenTheyExist(t *testing.T) {
 
 	m.On("UserExists", mock.Anything, mock.Anything, "bongo").Return(true, nil)
 	m.On("DatabaseExists", mock.Anything, mock.Anything, mock.Anything, "bongo").Return(true, nil)
-	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bongo").Return(true, nil)
+	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bongo").
+		Return(true, nil)
 	m.On("ExtensionExists", mock.Anything, mock.Anything, "vector").Return(true, nil)
 
 	HandleCluster(context.Background(), k8s.ClusterResult{
@@ -305,7 +334,8 @@ func TestItCreatesExtensionsWhenTheyDontExist(t *testing.T) {
 
 	m.On("UserExists", mock.Anything, mock.Anything, "bongo").Return(true, nil)
 	m.On("DatabaseExists", mock.Anything, mock.Anything, mock.Anything, "bongo").Return(true, nil)
-	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bongo").Return(true, nil)
+	m.On("UserIsOwner", mock.Anything, mock.Anything, mock.Anything, "bongo", "bongo").
+		Return(true, nil)
 	m.On("ExtensionExists", mock.Anything, mock.Anything, "vector").Return(false, nil)
 	m.On("CreateExtension", mock.Anything, mock.Anything, "vector", true).Return(nil)
 

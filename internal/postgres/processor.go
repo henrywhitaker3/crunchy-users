@@ -45,7 +45,11 @@ func (p *processor) UserExists(ctx context.Context, db *sql.DB, name string) (bo
 		return true, nil
 	}
 
-	row := db.QueryRowContext(ctx, "SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = $1 LIMIT 1", name)
+	row := db.QueryRowContext(
+		ctx,
+		"SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = $1 LIMIT 1",
+		name,
+	)
 	var tu int
 	if err := row.Scan(&tu); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -59,12 +63,20 @@ func (p *processor) UserExists(ctx context.Context, db *sql.DB, name string) (bo
 	return true, nil
 }
 
-func (p *processor) UserIsOwner(ctx context.Context, db *sql.DB, cluster, user, database string) (bool, error) {
+func (p *processor) UserIsOwner(
+	ctx context.Context,
+	db *sql.DB,
+	cluster, user, database string,
+) (bool, error) {
 	key := fmt.Sprintf("%s:%s", cluster, database)
 	if _, ok := p.databaseOwned.Get(key); ok {
 		return true, nil
 	}
-	row := db.QueryRowContext(ctx, "SELECT datdba::regrole FROM pg_database WHERE datname = $1 LIMIT 1", database)
+	row := db.QueryRowContext(
+		ctx,
+		"SELECT datdba::regrole FROM pg_database WHERE datname = $1 LIMIT 1",
+		database,
+	)
 	var owner string
 	if err := row.Scan(&owner); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -80,16 +92,28 @@ func (p *processor) UserIsOwner(ctx context.Context, db *sql.DB, cluster, user, 
 }
 
 func (p *processor) MakeUserOwner(ctx context.Context, db *sql.DB, database, user string) error {
-	_, err := db.ExecContext(ctx, fmt.Sprintf("ALTER DATABASE \"%s\" OWNER TO \"%s\"", database, user))
+	_, err := db.ExecContext(
+		ctx,
+		fmt.Sprintf("ALTER DATABASE \"%s\" OWNER TO \"%s\"", database, user),
+	)
 	return err
 }
 
-func (p *processor) DatabaseExists(ctx context.Context, db *sql.DB, cluster string, database string) (bool, error) {
+func (p *processor) DatabaseExists(
+	ctx context.Context,
+	db *sql.DB,
+	cluster string,
+	database string,
+) (bool, error) {
 	key := fmt.Sprintf("%s:%s", cluster, database)
 	if _, ok := p.databaseExists.Get(key); ok {
 		return true, nil
 	}
-	row := db.QueryRowContext(ctx, "SELECT 1 FROM pg_catalog.pg_database WHERE datname = $1 LIMIT 1", database)
+	row := db.QueryRowContext(
+		ctx,
+		"SELECT 1 FROM pg_catalog.pg_database WHERE datname = $1 LIMIT 1",
+		database,
+	)
 	var du int
 	if err := row.Scan(&du); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -123,7 +147,12 @@ func (p *processor) ExtensionExists(ctx context.Context, db *sql.DB, name string
 	return slices.Contains(enabled, name), nil
 }
 
-func (p *processor) CreateExtension(ctx context.Context, db *sql.DB, name string, cascade bool) error {
+func (p *processor) CreateExtension(
+	ctx context.Context,
+	db *sql.DB,
+	name string,
+	cascade bool,
+) error {
 	query := fmt.Sprintf("CREATE EXTENSION %s", name)
 	if cascade {
 		query = fmt.Sprintf("%s CASCADE", query)

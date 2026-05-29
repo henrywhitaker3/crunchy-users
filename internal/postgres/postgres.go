@@ -1,3 +1,4 @@
+// Package postgres
 package postgres
 
 import (
@@ -48,7 +49,12 @@ func HandleCluster(ctx context.Context, cluster k8s.ClusterResult) error {
 			databases++
 			ld := l.With("database", database)
 			ld.Debug("processing database")
-			if exists, err := processor.DatabaseExists(ctx, db, cluster.Key(), database); err != nil {
+			if exists, err := processor.DatabaseExists(
+				ctx,
+				db,
+				cluster.Key(),
+				database,
+			); err != nil {
 				ld.Errorw("could not determine if database exists", "error", err)
 				continue
 			} else if !exists {
@@ -58,7 +64,13 @@ func HandleCluster(ctx context.Context, cluster k8s.ClusterResult) error {
 				ld.Debug("database exists")
 			}
 
-			if owner, err := processor.UserIsOwner(ctx, db, cluster.Key(), user.Name, database); err != nil {
+			if owner, err := processor.UserIsOwner(
+				ctx,
+				db,
+				cluster.Key(),
+				user.Name,
+				database,
+			); err != nil {
 				ld.Errorw("could not determine if user owns the database", "error", err)
 				continue
 			} else if !owner {
@@ -88,13 +100,26 @@ func HandleCluster(ctx context.Context, cluster k8s.ClusterResult) error {
 					le.Debug("extension already installed")
 					continue
 				}
-				if err := processor.CreateExtension(ctx, ddb, ext.Extension, ext.Cascade); err != nil {
+				if err := processor.CreateExtension(
+					ctx,
+					ddb,
+					ext.Extension,
+					ext.Cascade,
+				); err != nil {
 					le.Errorw("could not install extension", "error", err)
 				}
 			}
 		}
 	}
-	logger.Infow("processed cluster", "users", users, "databases", databases, "extensions", extensions)
+	logger.Infow(
+		"processed cluster",
+		"users",
+		users,
+		"databases",
+		databases,
+		"extensions",
+		extensions,
+	)
 
 	return nil
 }
