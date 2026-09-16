@@ -20,8 +20,8 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version: '1.26'
       - run: go mod download
@@ -31,7 +31,7 @@ jobs:
         run: gotestsum --junitfile unit-tests.xml
 
       - name: Publish Test Report
-        uses: mikepenz/action-junit-report@v6
+        uses: mikepenz/action-junit-report@a9170d5795813c01ab4901ffb045b52bab4ab09d # v6
         if: success() || failure()
         with:
           report_paths: unit-tests.xml
