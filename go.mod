@@ -6,7 +6,7 @@ require (
 	github.com/crunchydata/postgres-operator v1.3.3-0.20260526210104-9fa17c8bed9b
 	github.com/henrywhitaker3/ctxgen v1.0.1
 	github.com/henrywhitaker3/flow v1.11.1
-	github.com/jackc/pgx/v5 v5.9.2
+	github.com/jackc/pgx/v5 v5.11.0
 	github.com/joho/godotenv v1.5.1
 	github.com/sethvargo/go-envconfig v1.3.0
 	github.com/spf13/cobra v1.10.2
